@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bybit Trading Bot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #1a1a1a; 
+            color: #fff;
+            padding: 10px;
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .status {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .status.running { border-left: 4px solid #00ff00; }
+        .status.stopped { border-left: 4px solid #ff0000; }
+        .section {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        .section-title {
+            color: #ffd700;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #444;
+            border-radius: 5px;
+            background: #333;
+            color: #fff;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px 0;
+            color: #aaa;
+        }
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-start { background: #00ff00; color: #000; }
+        .btn-stop { background: #ff0000; color: #fff; }
+        .btn-save { background: #0088ff; color: #fff; }
+        .positions {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .position-item {
+            background: #333;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #00ff00;
+        }
+        .position-item.short { border-left-color: #ff0000; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Bybit Trading Bot</h1>
+            <p>Mobile Control Panel</p>
+        </div>
+
+        <div id="statusBox" class="status stopped">
+            <h3>Status: <span id="statusText">Stopped</span></h3>
+            <p>Wallet: $<span id="walletBalance">0.00</span></p>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🔑 API Settings</div>
+            <label>API Key:</label>
+            <input type="text" id="apiKey" placeholder="Enter API Key">
+            <label>API Secret:</label>
+            <input type="password" id="apiSecret" placeholder="Enter API Secret">
+            <label>
+                <input type="checkbox" id="testnet"> Use Testnet
+            </label>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🪙 Trading Pairs</div>
+            <div class="checkbox-group">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="pair_BTCUSDT" value="BTCUSDT">
+                    <label for="pair_BTCUSDT">BTC</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="pair_ETHUSDT" value="ETHUSDT">
+                    <label for="pair_ETHUSDT">ETH</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="pair_SOLUSDT" value="SOLUSDT">
+                    <label for="pair_SOLUSDT">SOL</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="pair_XRPUSDT" value="XRPUSDT">
+                    <label for="pair_XRPUSDT">XRP</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="pair_DOGEUSDT" value="DOGEUSDT">
+                    <label for="pair_DOGEUSDT">DOGE</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="pair_ZECUSDT" value="ZECUSDT">
+                    <label for="pair_ZECUSDT">ZEC</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="pair_FARTCOINUSDT" value="FARTCOINUSDT">
+                    <label for="pair_FARTCOINUSDT">FART</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">⚙️ Risk Management</div>
+            <label>Position Size %:</label>
+            <input type="number" id="positionSize" value="35" min="1" max="100">
+            <label>Stop Loss %:</label>
+            <input type="number" id="stopLoss" value="42" min="1" max="100">
+            <label>Take Profit %:</label>
+            <input type="number" id="takeProfit" value="150" min="10" max="1000">
+            <label>Timeframe:</label>
+            <select id="timeframe">
+                <option value="1">1 minute</option>
+                <option value="3">3 minutes</option>
+                <option value="5" selected>5 minutes</option>
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="60">1 hour</option>
+            </select>
+        </div>
+
+        <button class="btn-save" onclick="saveConfig()">💾 Save Configuration</button>
+        <button class="btn-start" id="startBtn" onclick="startBot()">▶️ Start Bot</button>
+        <button class="btn-stop" id="stopBtn" onclick="stopBot()" disabled>⏹️ Stop Bot</button>
+
+        <div id="positionsBox" class="positions hidden">
+            <div class="section-title">📊 Open Positions</div>
+            <div id="positionsList"></div>
+        </div>
+    </div>
+
+    <script>
+        let config = {};
+
+        // Load config on page load
+        window.onload = function() {
+            loadConfig();
+            updateStatus();
+            setInterval(updateStatus, 2000);
+        };
+
+        function loadConfig() {
+            fetch('/api/config')
+                .then(r => r.json())
+                .then(data => {
+                    config = data;
+                    document.getElementById('apiKey').value = data.api_key || '';
+                    document.getElementById('apiSecret').value = data.api_secret || '';
+                    document.getElementById('testnet').checked = data.testnet || false;
+                    document.getElementById('positionSize').value = data.position_size_percent || 35;
+                    document.getElementById('stopLoss').value = data.stop_loss_percent || 42;
+                    document.getElementById('takeProfit').value = data.take_profit_percent || 150;
+                    document.getElementById('timeframe').value = data.timeframe || '5';
+                    
+                    // Set trading pairs
+                    const pairs = data.trading_pairs || [];
+                    pairs.forEach(pair => {
+                        const checkbox = document.getElementById('pair_' + pair);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                });
+        }
+
+        function saveConfig() {
+            const selectedPairs = [];
+            document.querySelectorAll('.checkbox-item input[type="checkbox"]').forEach(cb => {
+                if (cb.checked) selectedPairs.push(cb.value);
+            });
+
+            if (selectedPairs.length === 0) {
+                alert('Please select at least one trading pair!');
+                return;
+            }
+
+            config.api_key = document.getElementById('apiKey').value;
+            config.api_secret = document.getElementById('apiSecret').value;
+            config.testnet = document.getElementById('testnet').checked;
+            config.trading_pairs = selectedPairs;
+            config.position_size_percent = parseFloat(document.getElementById('positionSize').value);
+            config.stop_loss_percent = parseFloat(document.getElementById('stopLoss').value);
+            config.take_profit_percent = parseFloat(document.getElementById('takeProfit').value);
+            config.timeframe = document.getElementById('timeframe').value;
+
+            fetch('/api/config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(config)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Configuration saved!');
+                }
+            });
+        }
+
+        function startBot() {
+            fetch('/api/start', {method: 'POST'})
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('startBtn').disabled = true;
+                        document.getElementById('stopBtn').disabled = false;
+                    } else {
+                        alert('❌ ' + data.error);
+                    }
+                });
+        }
+
+        function stopBot() {
+            fetch('/api/stop', {method: 'POST'})
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('startBtn').disabled = false;
+                        document.getElementById('stopBtn').disabled = true;
+                    }
+                });
+        }
+
+        function updateStatus() {
+            fetch('/api/status')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('statusText').textContent = data.running ? 'Running ✅' : 'Stopped 🛑';
+                    document.getElementById('walletBalance').textContent = data.wallet.toFixed(2);
+                    
+                    const statusBox = document.getElementById('statusBox');
+                    statusBox.className = 'status ' + (data.running ? 'running' : 'stopped');
+                    
+                    // Update positions
+                    if (data.positions.length > 0) {
+                        document.getElementById('positionsBox').classList.remove('hidden');
+                        const positionsHTML = data.positions.map(pos => `
+                            <div class="position-item ${pos.side.toLowerCase()}">
+                                <strong>${pos.symbol}</strong> - ${pos.side}<br>
+                                Size: ${pos.size} | Entry: $${pos.entry.toFixed(2)}<br>
+                                PnL: $${pos.pnl.toFixed(2)}
+                            </div>
+                        `).join('');
+                        document.getElementById('positionsList').innerHTML = positionsHTML;
+                    } else {
+                        document.getElementById('positionsBox').classList.add('hidden');
+                    }
+                    
+                    // Update button states
+                    document.getElementById('startBtn').disabled = data.running;
+                    document.getElementById('stopBtn').disabled = !data.running;
+                });
+        }
+    </script>
+</body>
+</html>

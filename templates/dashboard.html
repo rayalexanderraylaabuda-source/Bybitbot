@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Bot Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .status-running {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status-stopped {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .btn-start {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-start:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+        
+        .btn-stop {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-stop:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+        
+        .btn-close {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-close:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            color: #333;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .positions {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .positions h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .position-card {
+            background: #f9fafb;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .position-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .position-symbol {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .position-side {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .side-buy {
+            background: #10b981;
+            color: white;
+        }
+        
+        .side-sell {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .side-none {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .position-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            font-size: 14px;
+        }
+        
+        .detail-item {
+            color: #666;
+        }
+        
+        .detail-value {
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .pnl-positive {
+            color: #10b981;
+        }
+        
+        .pnl-negative {
+            color: #ef4444;
+        }
+        
+        .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.3s;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+        
+        .message.success {
+            background: #10b981;
+        }
+        
+        .message.error {
+            background: #ef4444;
+        }
+        
+        @media (max-width: 768px) {
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Supertrend Trading Bot</h1>
+            <span id="statusBadge" class="status-badge status-stopped">STOPPED</span>
+            <p style="margin-top: 10px; color: #666;">
+                Started: <span id="startTime">-</span> | 
+                Last Update: <span id="lastUpdate">-</span>
+            </p>
+        </div>
+        
+        <div class="controls">
+            <h2 style="margin-bottom: 15px; color: #333;">Bot Controls</h2>
+            <div class="button-group">
+                <button id="startBtn" class="btn-start" onclick="startBot()">▶ Start Bot</button>
+                <button id="stopBtn" class="btn-stop" onclick="stopBot()" disabled>⏹ Stop Bot</button>
+                <button id="closeAllBtn" class="btn-close" onclick="closeAllPositions()" disabled>✕ Close All Positions</button>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Wallet Balance</div>
+                <div class="stat-value" id="walletBalance">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Unrealized PnL</div>
+                <div class="stat-value" id="totalPnl">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active Positions</div>
+                <div class="stat-value" id="activePositions">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Position Size</div>
+                <div class="stat-value" id="positionSize">35%</div>
+            </div>
+        </div>
+        
+        <div class="positions">
+            <h2>Open Positions</h2>
+            <div id="positionsList"></div>
+        </div>
+    </div>
+    
+    <div id="message" class="message"></div>
+    
+    <script>
+        let updateInterval;
+        
+        function showMessage(text, type = 'success') {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `message ${type}`;
+            msg.style.display = 'block';
+            setTimeout(() => {
+                msg.style.display = 'none';
+            }, 3000);
+        }
+        
+        async function startBot() {
+            try {
+                const response = await fetch('/api/start', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('Bot started successfully!', 'success');
+                    updateControls(true);
+                    startAutoUpdate();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Failed to start bot', 'error');
+            }
+        }
+        
+        async function stopBot() {
+            try {
+                const response = await fetch('/api/stop', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('Bot stopped successfully!', 'success');
+                    updateControls(false);
+                    stopAutoUpdate();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Failed to stop bot', 'error');
+            }
+        }
+        
+        async function closeAllPositions() {
+            if (!confirm('Are you sure you want to close all positions?')) return;
+            
+            try {
+                const response = await fetch('/api/close_all', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    updateStatus();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Failed to close positions', 'error');
+            }
+        }
+        
+        function updateControls(running) {
+            document.getElementById('startBtn').disabled = running;
+            document.getElementById('stopBtn').disabled = !running;
+            document.getElementById('closeAllBtn').disabled = !running;
+        }
+        
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const status = await response.json();
+                
+                // Update status badge
+                const badge = document.getElementById('statusBadge');
+                if (status.running) {
+                    badge.textContent = 'RUNNING';
+                    badge.className = 'status-badge status-running';
+                } else {
+                    badge.textContent = 'STOPPED';
+                    badge.className = 'status-badge status-stopped';
+                }
+                
+                // Update times
+                document.getElementById('startTime').textContent = status.start_time || '-';
+                document.getElementById('lastUpdate').textContent = status.last_update || '-';
+                
+                // Update stats
+                document.getElementById('walletBalance').textContent = `$${status.wallet_balance.toFixed(2)}`;
+                const pnlElement = document.getElementById('totalPnl');
+                pnlElement.textContent = `$${status.total_pnl.toFixed(2)}`;
+                pnlElement.className = `stat-value ${status.total_pnl >= 0 ? 'pnl-positive' : 'pnl-negative'}`;
+                
+                // Count active positions
+                let activeCount = 0;
+                for (const symbol in status.positions) {
+                    if (status.positions[symbol].size > 0) activeCount++;
+                }
+                document.getElementById('activePositions').textContent = activeCount;
+                
+                // Update positions list
+                const positionsList = document.getElementById('positionsList');
+                positionsList.innerHTML = '';
+                
+                for (const [symbol, pos] of Object.entries(status.positions)) {
+                    const posCard = document.createElement('div');
+                    posCard.className = 'position-card';
+                    
+                    const sideClass = pos.side === 'Buy' ? 'side-buy' : pos.side === 'Sell' ? 'side-sell' : 'side-none';
+                    const sideText = pos.side === 'Buy' ? 'LONG' : pos.side === 'Sell' ? 'SHORT' : 'NONE';
+                    
+                    posCard.innerHTML = `
+                        <div class="position-header">
+                            <span class="position-symbol">${symbol}</span>
+                            <span class="position-side ${sideClass}">${sideText}</span>
+                        </div>
+                        <div class="position-details">
+                            <div class="detail-item">
+                                Size: <span class="detail-value">${pos.size}</span>
+                            </div>
+                            <div class="detail-item">
+                                Entry: <span class="detail-value">$${pos.entry_price.toFixed(4)}</span>
+                            </div>
+                            <div class="detail-item">
+                                Current: <span class="detail-value">$${pos.current_price.toFixed(4)}</span>
+                            </div>
+                            <div class="detail-item">
+                                PnL: <span class="detail-value ${pos.unrealized_pnl >= 0 ? 'pnl-positive' : 'pnl-negative'}">$${pos.unrealized_pnl.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    positionsList.appendChild(posCard);
+                }
+                
+                if (Object.keys(status.positions).length === 0) {
+                    positionsList.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No positions</p>';
+                }
+                
+                updateControls(status.running);
+                
+            } catch (error) {
+                console.error('Failed to update status:', error);
+            }
+        }
+        
+        function startAutoUpdate() {
+            updateInterval = setInterval(updateStatus, 5000); // Update every 5 seconds
+        }
+        
+        function stopAutoUpdate() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        }
+        
+        // Load config and initial status
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                document.getElementById('positionSize').textContent = `${config.position_size_percent}%`;
+            } catch (error) {
+                console.error('Failed to load config:', error);
+            }
+        }
+        
+        // Initialize
+        loadConfig();
+        updateStatus();
+        startAutoUpdate();
+    </script>
+</body>
+</html>
