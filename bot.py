@@ -167,7 +167,13 @@ class SupertrendBot:
         
         # Calculate quantity
         usd_amount = self.calculate_position_size(symbol)
-        leverage = LEVERAGE.get(symbol, 10)
+        leverage = self.client.get_max_leverage(symbol)
+        
+        # Set leverage
+        if not self.client.set_leverage(symbol, leverage):
+            logger.error(f"Failed to set leverage for {symbol}")
+            return False
+        
         qty = self.client.calculate_qty(symbol, usd_amount, leverage)
         
         if qty == 0:
@@ -233,7 +239,13 @@ class SupertrendBot:
         
         # Calculate quantity
         usd_amount = self.calculate_position_size(symbol)
-        leverage = LEVERAGE.get(symbol, 10)
+        leverage = self.client.get_max_leverage(symbol)
+        
+        # Set leverage
+        if not self.client.set_leverage(symbol, leverage):
+            logger.error(f"Failed to set leverage for {symbol}")
+            return False
+        
         qty = self.client.calculate_qty(symbol, usd_amount, leverage)
         
         if qty == 0:

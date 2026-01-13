@@ -181,7 +181,12 @@ class LiteMobileBot:
             time.sleep(1)
         
         usd = self.calc_size(symbol)
-        lev = self.config['leverage'].get(symbol, 10)
+        lev = self.client.get_max_leverage(symbol)
+        
+        # Set leverage
+        if not self.client.set_leverage(symbol, lev):
+            return False
+        
         qty = self.client.calculate_qty(symbol, usd, lev)
         
         if qty == 0:
@@ -236,7 +241,12 @@ class LiteMobileBot:
             time.sleep(1)
         
         usd = self.calc_size(symbol)
-        lev = self.config['leverage'].get(symbol, 10)
+        lev = self.client.get_max_leverage(symbol)
+        
+        # Set leverage
+        if not self.client.set_leverage(symbol, lev):
+            return False
+        
         qty = self.client.calculate_qty(symbol, usd, lev)
         
         if qty == 0:

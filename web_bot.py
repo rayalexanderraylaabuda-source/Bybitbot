@@ -73,10 +73,10 @@ def run_trading_bot():
         # Set position mode
         client.set_position_mode(0)
         
-        # Set leverage
+        # Set leverage to maximum for each symbol
         for symbol in bot_config['trading_pairs']:
-            lev = bot_config['leverage'].get(symbol, 25)
-            client.set_leverage(symbol, lev)
+            max_lev = client.get_max_leverage(symbol)
+            client.set_leverage(symbol, max_lev)
         
         last_signals = {pair: 'none' for pair in bot_config['trading_pairs']}
         
@@ -116,7 +116,7 @@ def run_trading_bot():
                         last_signals[symbol] = signal
                         
                         usd = bot_wallet * (bot_config['position_size_percent'] / 100)
-                        lev = bot_config['leverage'].get(symbol, 25)
+                        lev = client.get_max_leverage(symbol)
                         qty = client.calculate_qty(symbol, usd, lev)
                         
                         if qty > 0:

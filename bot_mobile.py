@@ -181,7 +181,12 @@ class MobileTradingBot:
             time.sleep(1)
         
         usd_amount = self.calculate_position_size(symbol)
-        leverage = self.config['leverage'].get(symbol, 10)
+        leverage = self.client.get_max_leverage(symbol)
+        
+        # Set leverage
+        if not self.client.set_leverage(symbol, leverage):
+            return False
+        
         qty = self.client.calculate_qty(symbol, usd_amount, leverage)
         
         if qty == 0:
@@ -202,7 +207,12 @@ class MobileTradingBot:
             time.sleep(1)
         
         usd_amount = self.calculate_position_size(symbol)
-        leverage = self.config['leverage'].get(symbol, 10)
+        leverage = self.client.get_max_leverage(symbol)
+        
+        # Set leverage
+        if not self.client.set_leverage(symbol, leverage):
+            return False
+        
         qty = self.client.calculate_qty(symbol, usd_amount, leverage)
         
         if qty == 0:

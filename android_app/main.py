@@ -359,7 +359,11 @@ class TradingBotApp(App):
                                     wallet = float(coin.get('walletBalance', 0))
                             
                             usd = wallet * (self.config_data['position_size_percent'] / 100)
-                            lev = self.config_data['leverage'].get(symbol, 25)
+                            lev = client.get_max_leverage(symbol)
+                            
+                            # Set leverage
+                            client.set_leverage(symbol, lev)
+                            
                             qty = client.calculate_qty(symbol, usd, lev)
                             
                             if qty > 0:

@@ -403,6 +403,16 @@ class BybitClient:
         instruments = response.get('result', {}).get('list', [])
         return instruments[0] if instruments else {}
     
+    def get_max_leverage(self, symbol: str) -> int:
+        """Get maximum leverage for a symbol"""
+        instrument = self.get_instrument_info(symbol)
+        if not instrument:
+            return 10  # Default fallback
+        
+        leverage_filter = instrument.get('leverageFilter', {})
+        max_leverage = leverage_filter.get('maxLeverage', '10')
+        return int(float(max_leverage))
+    
     def calculate_qty(self, symbol: str, usd_amount: float, leverage: int = 1) -> float:
         """
         Calculate order quantity from USD amount
