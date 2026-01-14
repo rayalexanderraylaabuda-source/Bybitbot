@@ -76,7 +76,7 @@ ENABLE_STOP_LOSS = True
 ENABLE_TAKE_PROFIT = True
 
 # Timeframe (1, 3, 5, 15, 30, 60, 120, 240, etc.)
-TIMEFRAME = "15"
+TIMEFRAME = "5"
 ```
 
 ### 4. Run the Bot
@@ -142,7 +142,7 @@ Take Profit Price = Entry Price × (1 - (150 / Leverage) / 100)
 | `POSITION_SIZE_PERCENT` | 35 | % of wallet balance per trade |
 | `STOP_LOSS_PERCENT` | 42 | ROI % loss to trigger stop loss |
 | `TAKE_PROFIT_PERCENT` | 150 | ROI % gain to trigger take profit |
-| `TIMEFRAME` | "15" | Candle timeframe in minutes |
+| `TIMEFRAME` | "5" | Candle timeframe in minutes |
 | `CHECK_INTERVAL` | 60 | Seconds between signal checks |
 
 ## Files
