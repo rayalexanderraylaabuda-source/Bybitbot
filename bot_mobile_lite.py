@@ -74,7 +74,7 @@ class LiteMobileBot:
                 },
                 "position_size_percent": 35,
                 "timeframe": "5",
-                "atr_period": 10,
+                "atr_period": 5,
                 "supertrend_factor": 3.0,
                 "stop_loss_percent": 42,
                 "enable_stop_loss": True,

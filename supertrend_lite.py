@@ -4,7 +4,7 @@ Uses only built-in Python and lists
 """
 
 
-def calculate_atr(high_prices, low_prices, close_prices, period=10):
+def calculate_atr(high_prices, low_prices, close_prices, period=5):
     """
     Calculate Average True Range (ATR)
     
@@ -12,7 +12,7 @@ def calculate_atr(high_prices, low_prices, close_prices, period=10):
         high_prices: List of high prices
         low_prices: List of low prices
         close_prices: List of close prices
-        period: ATR period (default: 10)
+        period: ATR period (default: 5)
     
     Returns:
         List of ATR values
@@ -41,13 +41,13 @@ def calculate_atr(high_prices, low_prices, close_prices, period=10):
     return atr
 
 
-def calculate_supertrend(candles, atr_period=10, factor=3.0):
+def calculate_supertrend(candles, atr_period=5, factor=3.0):
     """
     Calculate Supertrend signals from candle data
     
     Args:
         candles: List of candles [[timestamp, open, high, low, close, volume], ...]
-        atr_period: ATR period (default: 10)
+        atr_period: ATR period (default: 5)
         factor: Multiplier for ATR (default: 3.0)
     
     Returns:

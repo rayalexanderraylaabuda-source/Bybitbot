@@ -67,7 +67,7 @@ take_profit = entry_price * (1 - (150 / leverage) / 100)
 - `slow_range` (was: 2.0)
 
 ### Added Parameters
-- `atr_period` (default: 10) - ATR calculation period
+- `atr_period` (default: 5) - ATR calculation period
 - `supertrend_factor` (default: 3.0) - ATR multiplier
 - `take_profit_percent` (default: 150) - ROI % for take profit
 
@@ -105,7 +105,7 @@ take_profit = entry_price * (1 - (150 / leverage) / 100)
 1. Pull latest code: `git pull`
 2. Update config.py (or use defaults):
    ```python
-   ATR_PERIOD = 10
+   ATR_PERIOD = 5
    SUPERTREND_FACTOR = 3.0
    TAKE_PROFIT_PERCENT = 150
    ```

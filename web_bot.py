@@ -47,7 +47,7 @@ def load_config():
         'timeframe': '5',
         'stop_loss_percent': 42,
         'take_profit_percent': 150,
-        'atr_period': 10,
+        'atr_period': 5,
         'supertrend_factor': 3.0,
         'check_interval': 60
     }

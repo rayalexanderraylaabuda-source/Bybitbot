@@ -66,7 +66,7 @@ LEVERAGE = {
 }
 
 # Supertrend parameters
-ATR_PERIOD = 10
+ATR_PERIOD = 5
 SUPERTREND_FACTOR = 3.0
 
 # Risk management (ROI-based)
@@ -137,7 +137,7 @@ Take Profit Price = Entry Price × (1 - (150 / Leverage) / 100)
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `ATR_PERIOD` | 10 | ATR calculation period |
+| `ATR_PERIOD` | 5 | ATR calculation period |
 | `SUPERTREND_FACTOR` | 3.0 | ATR multiplier for bands |
 | `POSITION_SIZE_PERCENT` | 35 | % of wallet balance per trade |
 | `STOP_LOSS_PERCENT` | 42 | ROI % loss to trigger stop loss |

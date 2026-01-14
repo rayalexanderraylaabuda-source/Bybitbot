@@ -8,13 +8,13 @@ import numpy as np
 import pandas as pd
 
 
-def calculate_atr(df: pd.DataFrame, period: int = 10) -> pd.Series:
+def calculate_atr(df: pd.DataFrame, period: int = 5) -> pd.Series:
     """
     Calculate Average True Range (ATR)
     
     Args:
         df: DataFrame with OHLC data (requires 'high', 'low', 'close' columns)
-        period: ATR period (default: 10)
+        period: ATR period (default: 5)
     
     Returns:
         ATR series
@@ -39,7 +39,7 @@ def calculate_atr(df: pd.DataFrame, period: int = 10) -> pd.Series:
 
 def calculate_supertrend(
     df: pd.DataFrame,
-    atr_period: int = 10,
+    atr_period: int = 5,
     factor: float = 3.0
 ) -> pd.DataFrame:
     """
@@ -47,7 +47,7 @@ def calculate_supertrend(
     
     Args:
         df: DataFrame with OHLC data
-        atr_period: ATR period (default: 10)
+        atr_period: ATR period (default: 5)
         factor: Multiplier for ATR (default: 3.0)
     
     Returns:
