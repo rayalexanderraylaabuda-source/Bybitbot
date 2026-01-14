@@ -35,17 +35,17 @@ def load_config():
         'testnet': False,
         'trading_pairs': ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'],
         'leverage': {
-            'BTCUSDT': 100,
-            'ETHUSDT': 100,
-            'SOLUSDT': 100,
-            'XRPUSDT': 50,
-            'DOGEUSDT': 50,
-            'ZECUSDT': 25,
-            'FARTCOINUSDT': 25
+            'BTCUSDT': 30,
+            'ETHUSDT': 30,
+            'SOLUSDT': 30,
+            'XRPUSDT': 30,
+            'DOGEUSDT': 30,
+            'ZECUSDT': 30,
+            'FARTCOINUSDT': 30
         },
         'position_size_percent': 35,
-        'timeframe': '5',
-        'stop_loss_percent': 42,
+        'timeframe': '60',
+        'stop_loss_percent': 100,
         'take_profit_percent': 150,
         'atr_period': 5,
         'supertrend_factor': 3.0,
@@ -73,10 +73,10 @@ def run_trading_bot():
         # Set position mode
         client.set_position_mode(0)
         
-        # Set leverage to maximum for each symbol
+        # Set leverage for each symbol
         for symbol in bot_config['trading_pairs']:
-            max_lev = client.get_max_leverage(symbol)
-            client.set_leverage(symbol, max_lev)
+            lev = bot_config['leverage'].get(symbol, 30)
+            client.set_leverage(symbol, lev)
         
         last_signals = {pair: 'none' for pair in bot_config['trading_pairs']}
         
