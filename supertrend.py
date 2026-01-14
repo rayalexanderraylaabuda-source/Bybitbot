@@ -109,11 +109,11 @@ def calculate_supertrend(
     direction_change = direction.diff()
     
     # Generate trading signals
-    # Long signal: direction changes to negative (downtrend)
-    long_signal = direction_change < 0
+    # Long signal: direction changes to positive (uptrend)
+    long_signal = direction_change > 0
     
-    # Short signal: direction changes to positive (uptrend)
-    short_signal = direction_change > 0
+    # Short signal: direction changes to negative (downtrend)
+    short_signal = direction_change < 0
     
     # Add to result DataFrame
     result['atr'] = atr
