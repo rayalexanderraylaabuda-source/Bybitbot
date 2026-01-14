@@ -297,6 +297,14 @@ class SupertrendBot:
         
         return response.get('retCode') == 0
     
+    def has_any_position(self) -> bool:
+        """Check if ANY position is open across all pairs"""
+        for symbol in self.trading_pairs:
+            position = self.get_current_position(symbol)
+            if position['size'] > 0:
+                return True
+        return False
+    
     def process_signal(self, symbol: str, signal: str):
         """Process a trading signal"""
         if signal == 'none':
@@ -310,6 +318,11 @@ class SupertrendBot:
                 logger.info(f"Already in LONG position on {symbol}, skipping")
                 return
             
+            # Don't open if ANY other position is open
+            if self.has_any_position():
+                logger.info(f"❌ Already have an open position elsewhere, cannot open LONG on {symbol}")
+                return
+            
             logger.info(f"🟢 LONG SIGNAL on {symbol}")
             if self.open_long(symbol):
                 logger.info(f"✅ Successfully opened LONG on {symbol}")
@@ -320,6 +333,11 @@ class SupertrendBot:
             # Don't open if already short
             if current_position['side'] == 'Sell' and current_position['size'] > 0:
                 logger.info(f"Already in SHORT position on {symbol}, skipping")
+                return
+            
+            # Don't open if ANY other position is open
+            if self.has_any_position():
+                logger.info(f"❌ Already have an open position elsewhere, cannot open SHORT on {symbol}")
                 return
             
             logger.info(f"🔴 SHORT SIGNAL on {symbol}")

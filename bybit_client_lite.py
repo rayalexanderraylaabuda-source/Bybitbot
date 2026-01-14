@@ -265,6 +265,10 @@ class BybitClientLite:
     
     def set_trading_stop(self, symbol: str, stop_loss: float = None, take_profit: float = None) -> bool:
         """Set stop loss and take profit for an open position"""
+        if not stop_loss and not take_profit:
+            logger.debug("No SL/TP to set")
+            return True
+        
         endpoint = "/v5/position/trading-stop"
         params = {
             'category': 'linear',
@@ -273,19 +277,24 @@ class BybitClientLite:
         }
         
         if stop_loss:
-            params['stopLoss'] = str(round(stop_loss, 2))
-            logger.info(f"  ⛔ SL set: ${stop_loss:.2f}")
+            params['stopLoss'] = str(round(stop_loss, 4))
+            logger.info(f"  ⛔ SL set: ${stop_loss:.4f}")
         
         if take_profit:
-            params['takeProfit'] = str(round(take_profit, 2))
-            logger.info(f"  🎯 TP set: ${take_profit:.2f}")
+            params['takeProfit'] = str(round(take_profit, 4))
+            logger.info(f"  🎯 TP set: ${take_profit:.4f}")
         
         response = self._request_v5('POST', endpoint, params, signed=True)
         
         if response.get('retCode') == 0:
+            logger.info(f"✅ SL/TP configured successfully for {symbol}")
             return True
+        elif response.get('retCode') == 110001:  # Position not exist
+            logger.warning(f"⚠️ Position not yet available, retrying in 2 seconds...")
+            time.sleep(2)
+            return self.set_trading_stop(symbol, stop_loss, take_profit)
         else:
-            logger.error(f"Failed to set SL/TP: {response.get('retMsg')}")
+            logger.error(f"❌ Failed to set SL/TP: {response.get('retMsg')} (Code: {response.get('retCode')})")
             return False
     
     def close_position(self, symbol: str) -> Dict:

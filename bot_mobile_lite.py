@@ -107,6 +107,14 @@ class LiteMobileBot:
         with open('bot_state.json', 'w') as f:
             json.dump({'signals': self.last_signals, 'time': datetime.now().isoformat()}, f)
     
+    def has_any_position(self):
+        """Check if ANY position is open"""
+        for symbol in self.pairs:
+            pos = self.get_position(symbol)
+            if pos['size'] > 0:
+                return True
+        return False
+    
     def load_state(self):
         """Load state"""
         if os.path.exists('bot_state.json'):
@@ -365,7 +373,10 @@ class LiteMobileBot:
                 if signal != 'none' and signal != self.last_signals[symbol]:
                     self.last_signals[symbol] = signal
                     
-                    if signal == 'long':
+                    # Check if we already have ANY position open
+                    if self.has_any_position():
+                        logger.info(f"❌ Already have an open position elsewhere, cannot trade {symbol} ({signal})")
+                    elif signal == 'long':
                         self.open_long(symbol)
                     elif signal == 'short':
                         self.open_short(symbol)
