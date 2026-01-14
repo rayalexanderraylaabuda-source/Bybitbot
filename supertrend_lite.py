@@ -116,10 +116,10 @@ def calculate_supertrend(candles, atr_period=5, factor=3.0):
     # Generate signals based on direction change
     # Check last 2 candles (use -2 to avoid current forming candle)
     if len(direction) >= 3:
-        # Long signal: direction changes to 1 (uptrend)
-        long_signal = direction[-2] == 1 and direction[-3] == -1
-        # Short signal: direction changes to -1 (downtrend)
-        short_signal = direction[-2] == -1 and direction[-3] == 1
+        # Long signal: direction changes to -1 (downtrend) - counter-trend
+        long_signal = direction[-2] == -1 and direction[-3] == 1
+        # Short signal: direction changes to 1 (uptrend) - counter-trend
+        short_signal = direction[-2] == 1 and direction[-3] == -1
     else:
         long_signal = False
         short_signal = False
