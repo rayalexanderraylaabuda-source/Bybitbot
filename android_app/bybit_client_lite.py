@@ -185,25 +185,41 @@ class BybitClientLite:
             return False
     
     def set_leverage(self, symbol: str, leverage: int) -> bool:
-        """Set leverage for One-Way Mode"""
-        endpoint = "/v5/position/set-leverage"
-        params = {
-            'category': 'linear',
-            'symbol': symbol,
-            'buyLeverage': str(leverage),
-            'sellLeverage': str(leverage),
-            'positionIdx': 0  # 0 = One-Way Mode
-        }
+        """Set leverage for One-Way Mode with automatic fallback"""
+        max_attempts = 5
+        current_leverage = leverage
         
-        response = self._request_v5('POST', endpoint, params, signed=True)
+        for attempt in range(max_attempts):
+            endpoint = "/v5/position/set-leverage"
+            params = {
+                'category': 'linear',
+                'symbol': symbol,
+                'buyLeverage': str(current_leverage),
+                'sellLeverage': str(current_leverage),
+                'positionIdx': 0  # 0 = One-Way Mode
+            }
+            
+            response = self._request_v5('POST', endpoint, params, signed=True)
+            
+            if response.get('retCode') == 0:
+                logger.info(f"✅ Leverage set to {current_leverage}x for {symbol}")
+                return True
+            elif response.get('retCode') == 110043:
+                logger.debug(f"Leverage already set for {symbol}")
+                return True
+            elif response.get('retCode') == 110012:  # Not enough for new leverage
+                if current_leverage > 1:
+                    current_leverage = max(1, current_leverage // 2)
+                    logger.warning(f"⚠️ Insufficient margin for {leverage}x leverage on {symbol}, trying {current_leverage}x")
+                    continue
+                else:
+                    logger.error(f"❌ Failed to set leverage: Even 1x leverage not supported for {symbol}")
+                    return False
+            else:
+                logger.error(f"❌ Failed to set leverage: {response.get('retMsg')} (Code: {response.get('retCode')})")
+                return False
         
-        if response.get('retCode') == 0:
-            return True
-        elif response.get('retCode') == 110043:
-            logger.debug(f"Leverage already set for {symbol}")
-            return True
-        
-        logger.error(f"Failed to set leverage: {response.get('retMsg')}")
+        logger.error(f"❌ Failed to set leverage after {max_attempts} attempts for {symbol}")
         return False
     
     def place_order(
