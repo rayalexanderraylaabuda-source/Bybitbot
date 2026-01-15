@@ -34,11 +34,11 @@ except ImportError:
     TRADING_PAIRS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
     POSITION_SIZE_PERCENT = 35
     USE_DYNAMIC_SIZING = True
-    LEVERAGE = {"BTCUSDT": 30, "ETHUSDT": 30, "SOLUSDT": 30}
+    LEVERAGE = {"BTCUSDT": 37, "ETHUSDT": 37, "SOLUSDT": 37}
     TIMEFRAME = "60"
     ATR_PERIOD = 5
     SUPERTREND_FACTOR = 3.0
-    STOP_LOSS_PERCENT = 100
+    STOP_LOSS_PERCENT = 37
     TAKE_PROFIT_PERCENT = 150
     ENABLE_STOP_LOSS = True
     ENABLE_TAKE_PROFIT = True
@@ -167,7 +167,7 @@ class SupertrendBot:
         
         # Calculate quantity
         usd_amount = self.calculate_position_size(symbol)
-        leverage = self.client.get_max_leverage(symbol)
+        leverage = LEVERAGE.get(symbol, 37)
         
         # Set leverage
         if not self.client.set_leverage(symbol, leverage):
@@ -239,7 +239,7 @@ class SupertrendBot:
         
         # Calculate quantity
         usd_amount = self.calculate_position_size(symbol)
-        leverage = self.client.get_max_leverage(symbol)
+        leverage = LEVERAGE.get(symbol, 37)
         
         # Set leverage
         if not self.client.set_leverage(symbol, leverage):

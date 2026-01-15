@@ -29,7 +29,7 @@ class LiteMobileBot:
     """Ultra-lightweight mobile trading bot"""
     
     # Default risk management values
-    DEFAULT_STOP_LOSS_PERCENT = 42
+    DEFAULT_STOP_LOSS_PERCENT = 37
     DEFAULT_TAKE_PROFIT_PERCENT = 150
     
     def __init__(self):
@@ -64,19 +64,19 @@ class LiteMobileBot:
                 "position_mode": "one-way",
                 "trading_pairs": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ZECUSDT", "FARTCOINUSDT"],
                 "leverage": {
-                    "BTCUSDT": 30,
-                    "ETHUSDT": 30,
-                    "SOLUSDT": 30,
-                    "XRPUSDT": 30,
-                    "DOGEUSDT": 30,
-                    "ZECUSDT": 30,
-                    "FARTCOINUSDT": 30
+                    "BTCUSDT": 37,
+                    "ETHUSDT": 37,
+                    "SOLUSDT": 37,
+                    "XRPUSDT": 37,
+                    "DOGEUSDT": 37,
+                    "ZECUSDT": 37,
+                    "FARTCOINUSDT": 37
                 },
                 "position_size_percent": 35,
                 "timeframe": "60",
                 "atr_period": 5,
                 "supertrend_factor": 3.0,
-                "stop_loss_percent": 100,
+                "stop_loss_percent": 37,
                 "enable_stop_loss": True,
                 "take_profit_percent": 150,
                 "enable_take_profit": True,
@@ -189,12 +189,7 @@ class LiteMobileBot:
             time.sleep(1)
         
         usd = self.calc_size(symbol)
-        lev = self.client.get_max_leverage(symbol)
-        
-        # Set leverage
-        if not self.client.set_leverage(symbol, lev):
-            return False
-        
+        lev = self.config['leverage'].get(symbol, 37)
         qty = self.client.calculate_qty(symbol, usd, lev)
         
         if qty == 0:
@@ -249,12 +244,7 @@ class LiteMobileBot:
             time.sleep(1)
         
         usd = self.calc_size(symbol)
-        lev = self.client.get_max_leverage(symbol)
-        
-        # Set leverage
-        if not self.client.set_leverage(symbol, lev):
-            return False
-        
+        lev = self.config['leverage'].get(symbol, 37)
         qty = self.client.calculate_qty(symbol, usd, lev)
         
         if qty == 0:

@@ -69,15 +69,15 @@ class MobileTradingBot:
             "testnet": True,
             "trading_pairs": ["BTCUSDT", "ETHUSDT", "SOLUSDT"],
             "leverage": {
-                "BTCUSDT": 100,
-                "ETHUSDT": 100,
-                "SOLUSDT": 100
+                "BTCUSDT": 37,
+                "ETHUSDT": 37,
+                "SOLUSDT": 37
             },
             "position_size_percent": 35,
             "timeframe": "5",
             "atr_period": 5,
             "supertrend_factor": 3.0,
-            "stop_loss_percent": 42,
+            "stop_loss_percent": 37,
             "take_profit_percent": 150,
             "enable_stop_loss": True,
             "enable_take_profit": True,
@@ -181,12 +181,7 @@ class MobileTradingBot:
             time.sleep(1)
         
         usd_amount = self.calculate_position_size(symbol)
-        leverage = self.client.get_max_leverage(symbol)
-        
-        # Set leverage
-        if not self.client.set_leverage(symbol, leverage):
-            return False
-        
+        leverage = self.config['leverage'].get(symbol, 37)
         qty = self.client.calculate_qty(symbol, usd_amount, leverage)
         
         if qty == 0:
@@ -207,12 +202,7 @@ class MobileTradingBot:
             time.sleep(1)
         
         usd_amount = self.calculate_position_size(symbol)
-        leverage = self.client.get_max_leverage(symbol)
-        
-        # Set leverage
-        if not self.client.set_leverage(symbol, leverage):
-            return False
-        
+        leverage = self.config['leverage'].get(symbol, 37)
         qty = self.client.calculate_qty(symbol, usd_amount, leverage)
         
         if qty == 0:

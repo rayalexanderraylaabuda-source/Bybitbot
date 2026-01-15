@@ -209,17 +209,17 @@ class TradingBotApp(App):
             'testnet': False,
             'trading_pairs': ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'],
             'leverage': {
-                'BTCUSDT': 30,
-                'ETHUSDT': 30,
-                'SOLUSDT': 30,
-                'XRPUSDT': 30,
-                'DOGEUSDT': 30,
-                'ZECUSDT': 30,
-                'FARTCOINUSDT': 30
+                'BTCUSDT': 37,
+                'ETHUSDT': 37,
+                'SOLUSDT': 37,
+                'XRPUSDT': 37,
+                'DOGEUSDT': 37,
+                'ZECUSDT': 37,
+                'FARTCOINUSDT': 37
             },
             'position_size_percent': 35,
             'timeframe': '60',
-            'stop_loss_percent': 100,
+            'stop_loss_percent': 37,
             'take_profit_percent': 150,
             'enable_stop_loss': True,
             'enable_take_profit': True,
@@ -359,7 +359,7 @@ class TradingBotApp(App):
                                     wallet = float(coin.get('walletBalance', 0))
                             
                             usd = wallet * (self.config_data['position_size_percent'] / 100)
-                            lev = client.get_max_leverage(symbol)
+                            lev = self.config_data['leverage'].get(symbol, 37)
                             
                             # Set leverage
                             client.set_leverage(symbol, lev)
