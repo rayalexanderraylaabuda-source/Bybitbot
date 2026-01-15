@@ -29,7 +29,7 @@ class BybitClientLite:
         self.api_key = api_key
         self.api_secret = api_secret
         self.base_url = self.TESTNET_URL if testnet else self.MAINNET_URL
-        self.recv_window = 20000
+        self.recv_window = 60000  # Increased from 20000 to 60000ms (60 seconds) for better timestamp tolerance
         
     def _generate_signature(self, params: Dict[str, Any]) -> str:
         """Generate HMAC signature"""
