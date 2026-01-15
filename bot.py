@@ -157,7 +157,12 @@ class TwinRangeFilterBot:
     
     def open_long(self, symbol: str) -> bool:
         """Open a long position with proper SL/TP"""
-        # First, close any existing short position
+        # Check if ANY other position is open
+        if self.has_any_position():
+            logger.info(f"❌ Cannot open LONG on {symbol} - another position is already active")
+            return False
+        
+        # First, close any existing short position on this symbol
         position = self.get_current_position(symbol)
         
         if position['side'] == 'Sell' and position['size'] > 0:
@@ -165,7 +170,7 @@ class TwinRangeFilterBot:
             if not self.close_position(symbol):
                 logger.error(f"Failed to close short position on {symbol}")
                 return False
-            time.sleep(1)  # Wait a moment
+            time.sleep(2)  # Wait for position to close
         
         # Calculate quantity
         usd_amount = self.calculate_position_size(symbol)
@@ -194,28 +199,32 @@ class TwinRangeFilterBot:
             return False
         
         # Calculate stop loss and take profit prices for LONG
-        # Formula: entry_price * (1 ± ROI% / leverage / 100)
+        # ROI Formula: roi = ((current_price - entry_price) / entry_price) * leverage * 100
+        # So for price calculation from ROI:
+        # price_move = entry_price * (ROI_PERCENT / leverage / 100)
         stop_loss_price = None
         take_profit_price = None
         
         if ENABLE_STOP_LOSS:
             # For LONG: stop loss is BELOW entry (price goes down = loss)
-            price_move_percent = STOP_LOSS_PERCENT / leverage
-            stop_loss_price = entry_price * (1 - price_move_percent / 100)
+            # At SL trigger: roi = -STOP_LOSS_PERCENT
+            price_move = entry_price * (STOP_LOSS_PERCENT / leverage / 100)
+            stop_loss_price = entry_price - price_move
         
         if ENABLE_TAKE_PROFIT:
             # For LONG: take profit is ABOVE entry (price goes up = profit)
-            price_move_percent = TAKE_PROFIT_PERCENT / leverage
-            take_profit_price = entry_price * (1 + price_move_percent / 100)
+            # At TP trigger: roi = TAKE_PROFIT_PERCENT
+            price_move = entry_price * (TAKE_PROFIT_PERCENT / leverage / 100)
+            take_profit_price = entry_price + price_move
         
         # Place long order
-        logger.info(f"Opening LONG position on {symbol} - Qty: {qty} @ ${entry_price:.2f} | {leverage}x")
+        logger.info(f"Opening LONG position on {symbol} - Qty: {qty:.4f} @ ${entry_price:.4f} | {leverage}x")
         if stop_loss_price:
-            actual_price_move = ((entry_price - stop_loss_price) / entry_price) * 100
-            logger.info(f"   ⛔ SL: ${stop_loss_price:.2f} ({actual_price_move:.2f}% price = {STOP_LOSS_PERCENT}% ROI)")
+            price_move_percent = ((entry_price - stop_loss_price) / entry_price) * 100
+            logger.info(f"   ⛔ SL: ${stop_loss_price:.4f} ({price_move_percent:.2f}% price move = {STOP_LOSS_PERCENT}% ROI loss)")
         if take_profit_price:
-            actual_price_move = ((take_profit_price - entry_price) / entry_price) * 100
-            logger.info(f"   🎯 TP: ${take_profit_price:.2f} ({actual_price_move:.2f}% price = {TAKE_PROFIT_PERCENT}% ROI)")
+            price_move_percent = ((take_profit_price - entry_price) / entry_price) * 100
+            logger.info(f"   🎯 TP: ${take_profit_price:.4f} ({price_move_percent:.2f}% price move = {TAKE_PROFIT_PERCENT}% ROI gain)")
         
         response = self.client.place_order(
             symbol=symbol,
@@ -229,7 +238,12 @@ class TwinRangeFilterBot:
     
     def open_short(self, symbol: str) -> bool:
         """Open a short position with proper SL/TP"""
-        # First, close any existing long position
+        # Check if ANY other position is open
+        if self.has_any_position():
+            logger.info(f"❌ Cannot open SHORT on {symbol} - another position is already active")
+            return False
+        
+        # First, close any existing long position on this symbol
         position = self.get_current_position(symbol)
         
         if position['side'] == 'Buy' and position['size'] > 0:
@@ -237,7 +251,7 @@ class TwinRangeFilterBot:
             if not self.close_position(symbol):
                 logger.error(f"Failed to close long position on {symbol}")
                 return False
-            time.sleep(1)  # Wait a moment
+            time.sleep(2)  # Wait for position to close
         
         # Calculate quantity
         usd_amount = self.calculate_position_size(symbol)
@@ -266,28 +280,32 @@ class TwinRangeFilterBot:
             return False
         
         # Calculate stop loss and take profit prices for SHORT
-        # Formula: entry_price * (1 ± ROI% / leverage / 100)
+        # ROI Formula: roi = ((entry_price - current_price) / entry_price) * leverage * 100
+        # So for price calculation from ROI:
+        # price_move = entry_price * (ROI_PERCENT / leverage / 100)
         stop_loss_price = None
         take_profit_price = None
         
         if ENABLE_STOP_LOSS:
             # For SHORT: stop loss is ABOVE entry (price goes up = loss)
-            price_move_percent = STOP_LOSS_PERCENT / leverage
-            stop_loss_price = entry_price * (1 + price_move_percent / 100)
+            # At SL trigger: roi = -STOP_LOSS_PERCENT
+            price_move = entry_price * (STOP_LOSS_PERCENT / leverage / 100)
+            stop_loss_price = entry_price + price_move
         
         if ENABLE_TAKE_PROFIT:
             # For SHORT: take profit is BELOW entry (price goes down = profit)
-            price_move_percent = TAKE_PROFIT_PERCENT / leverage
-            take_profit_price = entry_price * (1 - price_move_percent / 100)
+            # At TP trigger: roi = TAKE_PROFIT_PERCENT
+            price_move = entry_price * (TAKE_PROFIT_PERCENT / leverage / 100)
+            take_profit_price = entry_price - price_move
         
         # Place short order
-        logger.info(f"Opening SHORT position on {symbol} - Qty: {qty} @ ${entry_price:.2f} | {leverage}x")
+        logger.info(f"Opening SHORT position on {symbol} - Qty: {qty:.4f} @ ${entry_price:.4f} | {leverage}x")
         if stop_loss_price:
-            actual_price_move = ((stop_loss_price - entry_price) / entry_price) * 100
-            logger.info(f"   ⛔ SL: ${stop_loss_price:.2f} ({actual_price_move:.2f}% price = {STOP_LOSS_PERCENT}% ROI)")
+            price_move_percent = ((stop_loss_price - entry_price) / entry_price) * 100
+            logger.info(f"   ⛔ SL: ${stop_loss_price:.4f} ({price_move_percent:.2f}% price move = {STOP_LOSS_PERCENT}% ROI loss)")
         if take_profit_price:
-            actual_price_move = ((entry_price - take_profit_price) / entry_price) * 100
-            logger.info(f"   🎯 TP: ${take_profit_price:.2f} ({actual_price_move:.2f}% price = {TAKE_PROFIT_PERCENT}% ROI)")
+            price_move_percent = ((entry_price - take_profit_price) / entry_price) * 100
+            logger.info(f"   🎯 TP: ${take_profit_price:.4f} ({price_move_percent:.2f}% price move = {TAKE_PROFIT_PERCENT}% ROI gain)")
         
         response = self.client.place_order(
             symbol=symbol,
@@ -308,41 +326,51 @@ class TwinRangeFilterBot:
         return False
     
     def process_signal(self, symbol: str, signal: str):
-        """Process a trading signal"""
+        """Process a trading signal - Close opposite position first, then open new position"""
         if signal == 'none':
             return
         
         current_position = self.get_current_position(symbol)
         
         if signal == 'long':
-            # Don't open if already long
+            logger.info(f"🟢 LONG SIGNAL on {symbol}")
+            
+            # If already in LONG on this symbol, skip
             if current_position['side'] == 'Buy' and current_position['size'] > 0:
                 logger.info(f"Already in LONG position on {symbol}, skipping")
                 return
             
-            # Don't open if ANY other position is open
-            if self.has_any_position():
-                logger.info(f"❌ Already have an open position elsewhere, cannot open LONG on {symbol}")
-                return
+            # If in SHORT on this symbol, close it first
+            if current_position['side'] == 'Sell' and current_position['size'] > 0:
+                logger.info(f"Closing SHORT position on {symbol} before opening LONG")
+                if not self.close_position(symbol):
+                    logger.error(f"Failed to close SHORT on {symbol}")
+                    return
+                time.sleep(2)
             
-            logger.info(f"🟢 LONG SIGNAL on {symbol}")
+            # Try to open LONG
             if self.open_long(symbol):
                 logger.info(f"✅ Successfully opened LONG on {symbol}")
             else:
                 logger.error(f"❌ Failed to open LONG on {symbol}")
         
         elif signal == 'short':
-            # Don't open if already short
+            logger.info(f"🔴 SHORT SIGNAL on {symbol}")
+            
+            # If already in SHORT on this symbol, skip
             if current_position['side'] == 'Sell' and current_position['size'] > 0:
                 logger.info(f"Already in SHORT position on {symbol}, skipping")
                 return
             
-            # Don't open if ANY other position is open
-            if self.has_any_position():
-                logger.info(f"❌ Already have an open position elsewhere, cannot open SHORT on {symbol}")
-                return
+            # If in LONG on this symbol, close it first
+            if current_position['side'] == 'Buy' and current_position['size'] > 0:
+                logger.info(f"Closing LONG position on {symbol} before opening SHORT")
+                if not self.close_position(symbol):
+                    logger.error(f"Failed to close LONG on {symbol}")
+                    return
+                time.sleep(2)
             
-            logger.info(f"🔴 SHORT SIGNAL on {symbol}")
+            # Try to open SHORT
             if self.open_short(symbol):
                 logger.info(f"✅ Successfully opened SHORT on {symbol}")
             else:
@@ -368,12 +396,13 @@ class TwinRangeFilterBot:
                 current_price = float(ticker.get('lastPrice', 0))
                 entry_price = position['entry_price']
                 side = position['side']
-                leverage = position['leverage']
+                leverage = float(position['leverage']) if position['leverage'] else 1
                 
                 if entry_price == 0 or current_price == 0 or leverage == 0:
                     continue
                 
                 # Calculate ROI percentage
+                # Formula: roi = ((price_change / entry_price) * leverage * 100)
                 if side == 'Buy':  # Long position
                     roi = ((current_price - entry_price) / entry_price) * leverage * 100
                 else:  # Short position
@@ -383,7 +412,7 @@ class TwinRangeFilterBot:
                 if roi <= -STOP_LOSS_PERCENT:
                     logger.warning(
                         f"🛑 STOP LOSS TRIGGERED on {symbol} - "
-                        f"ROI: {roi:.2f}% (Entry: {entry_price:.2f}, Current: {current_price:.2f}, Leverage: {leverage}x)"
+                        f"ROI: {roi:.2f}% (Entry: ${entry_price:.4f}, Current: ${current_price:.4f}, Leverage: {leverage:.0f}x, Size: {position['size']:.4f})"
                     )
                     if self.close_position(symbol):
                         logger.info(f"✅ Stop loss executed successfully on {symbol}")
@@ -413,12 +442,13 @@ class TwinRangeFilterBot:
                 current_price = float(ticker.get('lastPrice', 0))
                 entry_price = position['entry_price']
                 side = position['side']
-                leverage = position['leverage']
+                leverage = float(position['leverage']) if position['leverage'] else 1
                 
                 if entry_price == 0 or current_price == 0 or leverage == 0:
                     continue
                 
                 # Calculate ROI percentage
+                # Formula: roi = ((price_change / entry_price) * leverage * 100)
                 if side == 'Buy':  # Long position
                     roi = ((current_price - entry_price) / entry_price) * leverage * 100
                 else:  # Short position
@@ -428,7 +458,7 @@ class TwinRangeFilterBot:
                 if roi >= TAKE_PROFIT_PERCENT:
                     logger.warning(
                         f"🎯 TAKE PROFIT TRIGGERED on {symbol} - "
-                        f"ROI: {roi:.2f}% (Entry: {entry_price:.2f}, Current: {current_price:.2f}, Leverage: {leverage}x)"
+                        f"ROI: {roi:.2f}% (Entry: ${entry_price:.4f}, Current: ${current_price:.4f}, Leverage: {leverage:.0f}x, Size: {position['size']:.4f})"
                     )
                     if self.close_position(symbol):
                         logger.info(f"✅ Take profit executed successfully on {symbol}")
