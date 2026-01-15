@@ -13,7 +13,7 @@ import signal
 import sys
 
 from bybit_client import BybitClient
-from supertrend import calculate_supertrend, get_latest_signal
+from twin_range_filter import calculate_twin_range_filter, get_latest_signal
 
 # Configure logging for mobile
 logging.basicConfig(
@@ -69,15 +69,17 @@ class MobileTradingBot:
             "testnet": True,
             "trading_pairs": ["BTCUSDT", "ETHUSDT", "SOLUSDT"],
             "leverage": {
-                "BTCUSDT": 100,
-                "ETHUSDT": 100,
-                "SOLUSDT": 100
+                "BTCUSDT": 35,
+                "ETHUSDT": 35,
+                "SOLUSDT": 35
             },
             "position_size_percent": 35,
-            "timeframe": "5",
-            "atr_period": 5,
-            "supertrend_factor": 3.0,
-            "stop_loss_percent": 42,
+            "timeframe": "60",
+            "twin_range_fast_period": 27,
+            "twin_range_fast_range": 1.6,
+            "twin_range_slow_period": 55,
+            "twin_range_slow_range": 2.0,
+            "stop_loss_percent": 100,
             "take_profit_percent": 150,
             "enable_stop_loss": True,
             "enable_take_profit": True,
@@ -181,7 +183,7 @@ class MobileTradingBot:
             time.sleep(1)
         
         usd_amount = self.calculate_position_size(symbol)
-        leverage = self.client.get_max_leverage(symbol)
+        leverage = 35  # Fixed 35x leverage as per requirement
         
         # Set leverage
         if not self.client.set_leverage(symbol, leverage):
@@ -192,8 +194,34 @@ class MobileTradingBot:
         if qty == 0:
             return False
         
-        logger.info(f"🟢 LONG {symbol} - ${usd_amount:.2f} ({qty})")
-        response = self.client.place_order(symbol=symbol, side='Buy', qty=qty)
+        # Get current price for SL/TP calculation
+        ticker = self.client.get_ticker(symbol)
+        if not ticker:
+            return False
+        
+        entry_price = float(ticker.get('lastPrice', 0))
+        if entry_price == 0:
+            return False
+        
+        stop_loss_price = None
+        take_profit_price = None
+        
+        if self.config.get('enable_stop_loss', True):
+            price_move_percent = self.config.get('stop_loss_percent', 100) / leverage
+            stop_loss_price = entry_price * (1 - price_move_percent / 100)
+        
+        if self.config.get('enable_take_profit', True):
+            price_move_percent = self.config.get('take_profit_percent', 150) / leverage
+            take_profit_price = entry_price * (1 + price_move_percent / 100)
+        
+        logger.info(f"🟢 LONG {symbol} - ${usd_amount:.2f} ({qty}) @ {leverage}x")
+        response = self.client.place_order(
+            symbol=symbol,
+            side='Buy',
+            qty=qty,
+            stop_loss=stop_loss_price,
+            take_profit=take_profit_price
+        )
         
         return response.get('retCode') == 0
     
@@ -207,7 +235,7 @@ class MobileTradingBot:
             time.sleep(1)
         
         usd_amount = self.calculate_position_size(symbol)
-        leverage = self.client.get_max_leverage(symbol)
+        leverage = 35  # Fixed 35x leverage as per requirement
         
         # Set leverage
         if not self.client.set_leverage(symbol, leverage):
@@ -218,8 +246,34 @@ class MobileTradingBot:
         if qty == 0:
             return False
         
-        logger.info(f"🔴 SHORT {symbol} - ${usd_amount:.2f} ({qty})")
-        response = self.client.place_order(symbol=symbol, side='Sell', qty=qty)
+        # Get current price for SL/TP calculation
+        ticker = self.client.get_ticker(symbol)
+        if not ticker:
+            return False
+        
+        entry_price = float(ticker.get('lastPrice', 0))
+        if entry_price == 0:
+            return False
+        
+        stop_loss_price = None
+        take_profit_price = None
+        
+        if self.config.get('enable_stop_loss', True):
+            price_move_percent = self.config.get('stop_loss_percent', 100) / leverage
+            stop_loss_price = entry_price * (1 + price_move_percent / 100)
+        
+        if self.config.get('enable_take_profit', True):
+            price_move_percent = self.config.get('take_profit_percent', 150) / leverage
+            take_profit_price = entry_price * (1 - price_move_percent / 100)
+        
+        logger.info(f"🔴 SHORT {symbol} - ${usd_amount:.2f} ({qty}) @ {leverage}x")
+        response = self.client.place_order(
+            symbol=symbol,
+            side='Sell',
+            qty=qty,
+            stop_loss=stop_loss_price,
+            take_profit=take_profit_price
+        )
         
         return response.get('retCode') == 0
     
@@ -269,10 +323,12 @@ class MobileTradingBot:
                 if df.empty:
                     continue
                 
-                df = calculate_supertrend(
+                df = calculate_twin_range_filter(
                     df,
-                    atr_period=self.config.get('atr_period', 10),
-                    factor=self.config.get('supertrend_factor', 3.0)
+                    fast_period=self.config.get('twin_range_fast_period', 27),
+                    fast_range=self.config.get('twin_range_fast_range', 1.6),
+                    slow_period=self.config.get('twin_range_slow_period', 55),
+                    slow_range=self.config.get('twin_range_slow_range', 2.0)
                 )
                 
                 signal = get_latest_signal(df)

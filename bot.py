@@ -1,5 +1,5 @@
 """
-Supertrend Trading Bot
+Twin Range Filter Trading Bot
 Automated trading on Bybit derivatives
 """
 
@@ -18,8 +18,10 @@ try:
         USE_DYNAMIC_SIZING,
         LEVERAGE,
         TIMEFRAME,
-        ATR_PERIOD,
-        SUPERTREND_FACTOR,
+        TWIN_RANGE_FAST_PERIOD,
+        TWIN_RANGE_FAST_RANGE,
+        TWIN_RANGE_SLOW_PERIOD,
+        TWIN_RANGE_SLOW_RANGE,
         STOP_LOSS_PERCENT,
         TAKE_PROFIT_PERCENT,
         ENABLE_STOP_LOSS,
@@ -34,10 +36,12 @@ except ImportError:
     TRADING_PAIRS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
     POSITION_SIZE_PERCENT = 35
     USE_DYNAMIC_SIZING = True
-    LEVERAGE = {"BTCUSDT": 30, "ETHUSDT": 30, "SOLUSDT": 30}
+    LEVERAGE = {"BTCUSDT": 35, "ETHUSDT": 35, "SOLUSDT": 35}
     TIMEFRAME = "60"
-    ATR_PERIOD = 5
-    SUPERTREND_FACTOR = 3.0
+    TWIN_RANGE_FAST_PERIOD = 27
+    TWIN_RANGE_FAST_RANGE = 1.6
+    TWIN_RANGE_SLOW_PERIOD = 55
+    TWIN_RANGE_SLOW_RANGE = 2.0
     STOP_LOSS_PERCENT = 100
     TAKE_PROFIT_PERCENT = 150
     ENABLE_STOP_LOSS = True
@@ -45,7 +49,7 @@ except ImportError:
     CHECK_INTERVAL = 60
 
 from bybit_client import BybitClient
-from supertrend import calculate_supertrend, get_latest_signal
+from twin_range_filter import calculate_twin_range_filter, get_latest_signal
 
 # Configure logging
 logging.basicConfig(
@@ -59,8 +63,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class SupertrendBot:
-    """Trading bot using Supertrend strategy"""
+class TwinRangeFilterBot:
+    """Trading bot using Twin Range Filter strategy"""
     
     def __init__(self):
         """Initialize the trading bot"""
@@ -76,7 +80,7 @@ class SupertrendBot:
         
         logger.info(f"Bot initialized - {'TESTNET' if USE_TESTNET else 'MAINNET'}")
         logger.info(f"Trading pairs: {', '.join(TRADING_PAIRS)}")
-        logger.info(f"Position sizing: {POSITION_SIZE_PERCENT}% of wallet balance")
+        logger.info(f"Position sizing: {POSITION_SIZE_PERCENT}% of wallet balance with 35x leverage")
         if ENABLE_STOP_LOSS:
             logger.info(f"Stop Loss enabled at {STOP_LOSS_PERCENT}% ROI loss")
         if ENABLE_TAKE_PROFIT:
@@ -167,7 +171,7 @@ class SupertrendBot:
         
         # Calculate quantity
         usd_amount = self.calculate_position_size(symbol)
-        leverage = self.client.get_max_leverage(symbol)
+        leverage = 35  # Fixed 35x leverage as per requirement
         
         # Set leverage
         if not self.client.set_leverage(symbol, leverage):
@@ -239,7 +243,7 @@ class SupertrendBot:
         
         # Calculate quantity
         usd_amount = self.calculate_position_size(symbol)
-        leverage = self.client.get_max_leverage(symbol)
+        leverage = 35  # Fixed 35x leverage as per requirement
         
         # Set leverage
         if not self.client.set_leverage(symbol, leverage):
@@ -447,11 +451,13 @@ class SupertrendBot:
                     logger.warning(f"No data received for {symbol}")
                     continue
                 
-                # Calculate Supertrend
-                df = calculate_supertrend(
+                # Calculate Twin Range Filter
+                df = calculate_twin_range_filter(
                     df,
-                    atr_period=ATR_PERIOD,
-                    factor=SUPERTREND_FACTOR
+                    fast_period=TWIN_RANGE_FAST_PERIOD,
+                    fast_range=TWIN_RANGE_FAST_RANGE,
+                    slow_period=TWIN_RANGE_SLOW_PERIOD,
+                    slow_range=TWIN_RANGE_SLOW_RANGE
                 )
                 
                 # Get latest signal
@@ -498,7 +504,7 @@ class SupertrendBot:
     def run(self):
         """Main bot loop"""
         logger.info("=" * 50)
-        logger.info("SUPERTREND TRADING BOT")
+        logger.info("TWIN RANGE FILTER TRADING BOT")
         logger.info("=" * 50)
         
         # Setup
@@ -571,7 +577,7 @@ class SupertrendBot:
 
 def main():
     """Main entry point"""
-    bot = SupertrendBot()
+    bot = TwinRangeFilterBot()
     
     # Test connection first
     if not bot.test_connection():
