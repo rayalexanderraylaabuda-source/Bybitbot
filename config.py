@@ -3,9 +3,12 @@ Configuration for Twin Range Filter Trading Bot
 """
 
 # ==================== API Configuration ====================
-BYBIT_API_KEY = "YOUR_API_KEY"
-BYBIT_API_SECRET = "YOUR_API_SECRET"
-USE_TESTNET = True  # Set to False for mainnet trading
+# ⚠️ IMPORTANT: Replace with your actual Bybit API credentials
+# Get them from: https://www.bybit.com/en/user/api-management
+# NEVER commit real credentials to git!
+BYBIT_API_KEY = "YOUR_ACTUAL_API_KEY_HERE"
+BYBIT_API_SECRET = "YOUR_ACTUAL_API_SECRET_HERE"
+USE_TESTNET = True  # Set to False for mainnet trading (start with testnet for testing)
 
 # ==================== Trading Pairs ====================
 TRADING_PAIRS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]

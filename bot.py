@@ -30,6 +30,8 @@ try:
     )
 except ImportError:
     # Default values if config.py doesn't exist
+    # ⚠️ IMPORTANT: You MUST create config.py with real API credentials!
+    # See config.py template for instructions
     BYBIT_API_KEY = "YOUR_API_KEY"
     BYBIT_API_SECRET = "YOUR_API_SECRET"
     USE_TESTNET = True
