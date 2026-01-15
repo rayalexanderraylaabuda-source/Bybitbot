@@ -11,7 +11,7 @@ import os
 import sys
 
 from bybit_client_lite import BybitClientLite
-from supertrend_lite import calculate_supertrend
+from twin_range_filter_lite import calculate_twin_range_filter
 
 # Configure logging
 logging.basicConfig(
@@ -64,19 +64,21 @@ class LiteMobileBot:
                 "position_mode": "one-way",
                 "trading_pairs": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ZECUSDT", "FARTCOINUSDT"],
                 "leverage": {
-                    "BTCUSDT": 37,
-                    "ETHUSDT": 37,
-                    "SOLUSDT": 37,
-                    "XRPUSDT": 37,
-                    "DOGEUSDT": 37,
-                    "ZECUSDT": 37,
-                    "FARTCOINUSDT": 37
+                    "BTCUSDT": 35,
+                    "ETHUSDT": 35,
+                    "SOLUSDT": 35,
+                    "XRPUSDT": 35,
+                    "DOGEUSDT": 35,
+                    "ZECUSDT": 35,
+                    "FARTCOINUSDT": 35
                 },
                 "position_size_percent": 35,
                 "timeframe": "60",
-                "atr_period": 5,
-                "supertrend_factor": 3.0,
-                "stop_loss_percent": 37,
+                "twin_range_fast_period": 27,
+                "twin_range_fast_range": 1.6,
+                "twin_range_slow_period": 55,
+                "twin_range_slow_range": 2.0,
+                "stop_loss_percent": 100,
                 "enable_stop_loss": True,
                 "take_profit_percent": 150,
                 "enable_take_profit": True,
@@ -189,7 +191,12 @@ class LiteMobileBot:
             time.sleep(1)
         
         usd = self.calc_size(symbol)
-        lev = self.config['leverage'].get(symbol, 37)
+        lev = 35  # Fixed 35x leverage as per requirement
+        
+        # Set leverage
+        if not self.client.set_leverage(symbol, lev):
+            return False
+        
         qty = self.client.calculate_qty(symbol, usd, lev)
         
         if qty == 0:
@@ -207,7 +214,7 @@ class LiteMobileBot:
             return False
         
         # Calculate stop loss and take profit prices for LONG
-        # IMPORTANT: Account for leverage! With 100x leverage, 1% price move = 100% ROI
+        # IMPORTANT: Account for leverage! With 35x leverage, 1% price move = 35% ROI
         stop_loss_price = None
         take_profit_price = None
         
@@ -244,7 +251,12 @@ class LiteMobileBot:
             time.sleep(1)
         
         usd = self.calc_size(symbol)
-        lev = self.config['leverage'].get(symbol, 37)
+        lev = 35  # Fixed 35x leverage as per requirement
+        
+        # Set leverage
+        if not self.client.set_leverage(symbol, lev):
+            return False
+        
         qty = self.client.calculate_qty(symbol, usd, lev)
         
         if qty == 0:
@@ -262,7 +274,7 @@ class LiteMobileBot:
             return False
         
         # Calculate stop loss and take profit prices for SHORT
-        # IMPORTANT: Account for leverage! With 100x leverage, 1% price move = 100% ROI
+        # IMPORTANT: Account for leverage! With 35x leverage, 1% price move = 35% ROI
         stop_loss_price = None
         take_profit_price = None
         
@@ -344,11 +356,13 @@ class LiteMobileBot:
                 if not candles:
                     continue
                 
-                # Calculate Supertrend signals
-                result = calculate_supertrend(
+                # Calculate Twin Range Filter signals
+                result = calculate_twin_range_filter(
                     candles,
-                    atr_period=self.config.get('atr_period', 10),
-                    factor=self.config.get('supertrend_factor', 3.0)
+                    fast_period=self.config.get('twin_range_fast_period', 27),
+                    fast_range=self.config.get('twin_range_fast_range', 1.6),
+                    slow_period=self.config.get('twin_range_slow_period', 55),
+                    slow_range=self.config.get('twin_range_slow_range', 2.0)
                 )
                 
                 # Determine signal

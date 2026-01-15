@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 
 from bybit_client_lite import BybitClientLite
-from supertrend_lite import calculate_supertrend
+from twin_range_filter_lite import calculate_twin_range_filter
 
 app = Flask(__name__)
 
@@ -35,20 +35,22 @@ def load_config():
         'testnet': False,
         'trading_pairs': ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'],
         'leverage': {
-            'BTCUSDT': 37,
-            'ETHUSDT': 37,
-            'SOLUSDT': 37,
-            'XRPUSDT': 37,
-            'DOGEUSDT': 37,
-            'ZECUSDT': 37,
-            'FARTCOINUSDT': 37
+            'BTCUSDT': 30,
+            'ETHUSDT': 30,
+            'SOLUSDT': 35,
+            'XRPUSDT': 35,
+            'DOGEUSDT': 35,
+            'ZECUSDT': 35,
+            'FARTCOINUSDT': 35
         },
         'position_size_percent': 35,
         'timeframe': '60',
         'stop_loss_percent': 37,
         'take_profit_percent': 150,
-        'atr_period': 5,
-        'supertrend_factor': 3.0,
+        'twin_range_fast_period': 27,
+        'twin_range_fast_range': 1.6,
+        'twin_range_slow_period': 55,
+        'twin_range_slow_range': 2.0,
         'check_interval': 60
     }
 
@@ -97,10 +99,12 @@ def run_trading_bot():
                     if not candles:
                         continue
                     
-                    result = calculate_supertrend(
+                    result = calculate_twin_range_filter(
                         candles,
-                        atr_period=bot_config.get('atr_period', 10),
-                        factor=bot_config.get('supertrend_factor', 3.0)
+                        fast_period=bot_config.get('twin_range_fast_period', 27),
+                        fast_range=bot_config.get('twin_range_fast_range', 1.6),
+                        slow_period=bot_config.get('twin_range_slow_period', 55),
+                        slow_range=bot_config.get('twin_range_slow_range', 2.0)
                     )
                     
                     # Determine signal
