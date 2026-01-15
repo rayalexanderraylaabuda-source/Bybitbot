@@ -5,7 +5,63 @@ Based on TradingView's ta.supertrend() function
 """
 
 import numpy as np
-import pandas as pd
+
+# Lightweight pandas replacement for Termux
+try:
+    import pandas as pd
+except ImportError:
+    class Series:
+        def __init__(self, data=None, index=None, dtype=None):
+            self.data = list(data) if data is not None else []
+            self.index = index or list(range(len(self.data)))
+        
+        def shift(self, n=1):
+            return Series([None]*n + self.data[:-n] if n > 0 else self.data[-n:] + [None]*(-n))
+        
+        def rolling(self, window):
+            return RollingResult(self.data, window)
+        
+        def __getitem__(self, key):
+            return self.data[key]
+        
+        def __setitem__(self, key, value):
+            self.data[key] = value
+    
+    class RollingResult:
+        def __init__(self, data, window):
+            self.data = data
+            self.window = window
+        
+        def mean(self):
+            result = []
+            for i in range(len(self.data)):
+                if i < self.window - 1:
+                    result.append(None)
+                else:
+                    window_data = self.data[i-self.window+1:i+1]
+                    avg = sum(x for x in window_data if x is not None) / len([x for x in window_data if x is not None])
+                    result.append(avg)
+            return Series(result)
+    
+    class DataFrame:
+        def __init__(self, data=None, columns=None):
+            self.columns = columns or []
+            self.data = data or {}
+        
+        def copy(self):
+            return DataFrame(dict(self.data), self.columns[:])
+        
+        def __getitem__(self, key):
+            return self.data.get(key, Series([]))
+        
+        def __setitem__(self, key, value):
+            self.data[key] = value
+            if key not in self.columns:
+                self.columns.append(key)
+    
+    class pd:
+        DataFrame = DataFrame
+        Series = Series
 
 
 def calculate_atr(df: pd.DataFrame, period: int = 5) -> pd.Series:

@@ -7,11 +7,55 @@ import time
 import hmac
 import hashlib
 import requests
-import pandas as pd
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import logging
 import urllib3
+
+# Lightweight pandas-free DataFrame for Termux compatibility
+try:
+    import pandas as pd
+except ImportError:
+    class DataFrame:
+        def __init__(self, data=None, columns=None):
+            self.columns = columns or []
+            self.data = data or []
+            self.index = list(range(len(self.data))) if self.data else []
+        
+        def empty(self):
+            return len(self.data) == 0
+        
+        def astype(self, dtype_dict):
+            for col_name, col_type in dtype_dict.items():
+                if col_name in self.columns:
+                    idx = self.columns.index(col_name)
+                    for row in self.data:
+                        try:
+                            row[idx] = col_type(row[idx])
+                        except:
+                            pass
+            return self
+        
+        def sort_values(self, by, ascending=True):
+            if isinstance(by, str):
+                idx = self.columns.index(by)
+                self.data.sort(key=lambda x: x[idx], reverse=not ascending)
+            return self
+        
+        def reset_index(self, drop=False):
+            return self
+        
+        def __getitem__(self, key):
+            return self.data[key] if isinstance(key, int) else [row[self.columns.index(key)] for row in self.data]
+    
+    class pd:
+        DataFrame = DataFrame
+        @staticmethod
+        def to_datetime(series, unit=None):
+            if unit == 'ms':
+                from datetime import datetime
+                return [datetime.fromtimestamp(int(x)/1000) for x in series]
+            return series
 
 # Disable SSL warnings if needed
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

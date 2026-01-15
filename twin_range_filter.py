@@ -5,7 +5,136 @@ Original: © colinmck
 """
 
 import numpy as np
-import pandas as pd
+
+# Lightweight pandas replacement for Termux
+try:
+    import pandas as pd
+except ImportError:
+    class Series:
+        def __init__(self, data=None, index=None, dtype=None):
+            self.data = list(data) if data is not None else []
+            self.index = index or list(range(len(self.data)))
+            self.dtype = dtype
+        
+        def ewm(self, span, adjust=False):
+            return EWMResult(self.data, span)
+        
+        def shift(self, n=1):
+            return Series([None]*n + self.data[:-n] if n > 0 else self.data[-n:] + [None]*(-n), index=self.index)
+        
+        def __abs__(self):
+            return Series([abs(x) if x is not None else None for x in self.data], index=self.index)
+        
+        def __sub__(self, other):
+            if isinstance(other, Series):
+                return Series([a - b if a is not None and b is not None else None for a, b in zip(self.data, other.data)], index=self.index)
+            return Series([x - other if x is not None else None for x in self.data], index=self.index)
+        
+        def __add__(self, other):
+            if isinstance(other, Series):
+                return Series([a + b if a is not None and b is not None else None for a, b in zip(self.data, other.data)], index=self.index)
+            return Series([x + other if x is not None else None for x in self.data], index=self.index)
+        
+        def __mul__(self, other):
+            if isinstance(other, Series):
+                return Series([a * b if a is not None and b is not None else None for a, b in zip(self.data, other.data)], index=self.index)
+            return Series([x * other if x is not None else None for x in self.data], index=self.index)
+        
+        def __gt__(self, other):
+            if isinstance(other, Series):
+                return Series([a > b if a is not None and b is not None else False for a, b in zip(self.data, other.data)], index=self.index)
+            return Series([x > other if x is not None else False for x in self.data], index=self.index)
+        
+        def __lt__(self, other):
+            if isinstance(other, Series):
+                return Series([a < b if a is not None and b is not None else False for a, b in zip(self.data, other.data)], index=self.index)
+            return Series([x < other if x is not None else False for x in self.data], index=self.index)
+        
+        def __and__(self, other):
+            return Series([a and b for a, b in zip(self.data, other.data)], index=self.index)
+        
+        def __or__(self, other):
+            return Series([a or b for a, b in zip(self.data, other.data)], index=self.index)
+        
+        def iloc(self):
+            return self
+        
+        def __getitem__(self, key):
+            if isinstance(key, int):
+                return self.data[key]
+            return Series([self.data[i] for i in key], index=[self.index[i] for i in key])
+    
+    class EWMResult:
+        def __init__(self, data, span):
+            self.data = data
+            self.span = span
+        
+        def mean(self):
+            result = []
+            alpha = 2 / (self.span + 1)
+            for i, x in enumerate(self.data):
+                if x is None:
+                    result.append(None)
+                elif i == 0:
+                    result.append(float(x) if x is not None else None)
+                else:
+                    prev = result[i-1]
+                    if prev is None:
+                        result.append(float(x) if x is not None else None)
+                    else:
+                        result.append(alpha * float(x) + (1 - alpha) * prev)
+            return Series(result)
+    
+    class DataFrame:
+        def __init__(self, data=None, columns=None):
+            self.columns = columns or []
+            if isinstance(data, list):
+                self.data = data
+            else:
+                self.data = data or []
+            self.index = list(range(len(self.data)))
+        
+        def copy(self):
+            return DataFrame([row[:] if isinstance(row, list) else dict(row) for row in self.data], self.columns)
+        
+        def astype(self, dtype_dict):
+            return self
+        
+        def sort_values(self, by, ascending=True):
+            return self
+        
+        def reset_index(self, drop=False):
+            return self
+        
+        def __getitem__(self, key):
+            if isinstance(key, str):
+                try:
+                    idx = self.columns.index(key)
+                    return Series([row[idx] if isinstance(row, (list, tuple)) else row.get(key) for row in self.data])
+                except:
+                    return Series([])
+            return self.data[key]
+        
+        def __setitem__(self, key, value):
+            if key not in self.columns:
+                self.columns.append(key)
+            if isinstance(value, Series):
+                for i, v in enumerate(value.data):
+                    if i < len(self.data):
+                        if isinstance(self.data[i], dict):
+                            self.data[i][key] = v
+                        else:
+                            self.data[i][key] = v
+    
+    class pd:
+        DataFrame = DataFrame
+        Series = Series
+        @staticmethod
+        def to_datetime(series, unit=None):
+            return series
+        @staticmethod
+        def concat(*args, **kwargs):
+            return Series([])
 
 
 def ema(series: pd.Series, period: int) -> pd.Series:
