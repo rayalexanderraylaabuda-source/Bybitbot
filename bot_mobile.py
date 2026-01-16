@@ -69,14 +69,16 @@ class MobileTradingBot:
             "testnet": True,
             "trading_pairs": ["BTCUSDT", "ETHUSDT", "SOLUSDT"],
             "leverage": {
-                "BTCUSDT": 37,
-                "ETHUSDT": 37,
-                "SOLUSDT": 37
+                "BTCUSDT": 35,
+                "ETHUSDT": 35,
+                "SOLUSDT": 35
             },
             "position_size_percent": 35,
-            "timeframe": "5",
-            "atr_period": 5,
-            "supertrend_factor": 3.0,
+            "timeframe": "60",
+            "twin_range_fast_period": 27,
+            "twin_range_fast_range": 1.6,
+            "twin_range_slow_period": 55,
+            "twin_range_slow_range": 2.0,
             "stop_loss_percent": 37,
             "take_profit_percent": 150,
             "enable_stop_loss": True,
@@ -171,36 +173,61 @@ class MobileTradingBot:
         
         return response.get('retCode') == 0
     
+    def has_any_position(self) -> bool:
+        """Check if ANY position is open across all pairs"""
+        for symbol in self.trading_pairs:
+            position = self.get_position(symbol)
+            if position['size'] > 0:
+                return True
+        return False
+    
     def open_long(self, symbol: str) -> bool:
         """Open long position"""
         position = self.get_position(symbol)
         
+        # Close any short position first
         if position['side'] == 'Sell' and position['size'] > 0:
+            logger.info(f"Closing SHORT position before opening LONG on {symbol}")
             if not self.close_position(symbol):
+                logger.error(f"Failed to close short position on {symbol}")
                 return False
             time.sleep(1)
         
+        # Check if ANY other position is open
+        if self.has_any_position():
+            logger.info(f"❌ Already have an open position elsewhere, cannot open LONG on {symbol}")
+            return False
+        
         usd_amount = self.calculate_position_size(symbol)
-        leverage = self.config['leverage'].get(symbol, 37)
+        leverage = self.config['leverage'].get(symbol, 35)
+        
+        # Set leverage
+        if not self.client.set_leverage(symbol, leverage):
+            logger.error(f"Failed to set leverage for {symbol}")
+            return False
+        
         qty = self.client.calculate_qty(symbol, usd_amount, leverage)
         
         if qty == 0:
+            logger.error(f"Could not calculate quantity for {symbol}")
             return False
         
         # Get current price for SL/TP calculation
         ticker = self.client.get_ticker(symbol)
         if not ticker:
+            logger.error(f"Failed to get ticker for {symbol}")
             return False
         
         entry_price = float(ticker.get('lastPrice', 0))
         if entry_price == 0:
+            logger.error(f"Invalid price for {symbol}")
             return False
         
         stop_loss_price = None
         take_profit_price = None
         
         if self.config.get('enable_stop_loss', True):
-            price_move_percent = self.config.get('stop_loss_percent', 100) / leverage
+            price_move_percent = self.config.get('stop_loss_percent', 37) / leverage
             stop_loss_price = entry_price * (1 - price_move_percent / 100)
         
         if self.config.get('enable_take_profit', True):
@@ -208,6 +235,13 @@ class MobileTradingBot:
             take_profit_price = entry_price * (1 + price_move_percent / 100)
         
         logger.info(f"🟢 LONG {symbol} - ${usd_amount:.2f} ({qty}) @ {leverage}x")
+        if stop_loss_price:
+            actual_price_move = ((entry_price - stop_loss_price) / entry_price) * 100
+            logger.info(f"   ⛔ SL: ${stop_loss_price:.2f} ({actual_price_move:.2f}% price = {self.config.get('stop_loss_percent', 37)}% ROI)")
+        if take_profit_price:
+            actual_price_move = ((take_profit_price - entry_price) / entry_price) * 100
+            logger.info(f"   🎯 TP: ${take_profit_price:.2f} ({actual_price_move:.2f}% price = {self.config.get('take_profit_percent', 150)}% ROI)")
+        
         response = self.client.place_order(
             symbol=symbol,
             side='Buy',
@@ -222,37 +256,49 @@ class MobileTradingBot:
         """Open short position"""
         position = self.get_position(symbol)
         
+        # Close any long position first
         if position['side'] == 'Buy' and position['size'] > 0:
+            logger.info(f"Closing LONG position before opening SHORT on {symbol}")
             if not self.close_position(symbol):
+                logger.error(f"Failed to close long position on {symbol}")
                 return False
             time.sleep(1)
         
+        # Check if ANY other position is open
+        if self.has_any_position():
+            logger.info(f"❌ Already have an open position elsewhere, cannot open SHORT on {symbol}")
+            return False
+        
         usd_amount = self.calculate_position_size(symbol)
-        leverage = 35  # Fixed 35x leverage as per requirement
+        leverage = self.config['leverage'].get(symbol, 35)
         
         # Set leverage
         if not self.client.set_leverage(symbol, leverage):
+            logger.error(f"Failed to set leverage for {symbol}")
             return False
         
         qty = self.client.calculate_qty(symbol, usd_amount, leverage)
         
         if qty == 0:
+            logger.error(f"Could not calculate quantity for {symbol}")
             return False
         
         # Get current price for SL/TP calculation
         ticker = self.client.get_ticker(symbol)
         if not ticker:
+            logger.error(f"Failed to get ticker for {symbol}")
             return False
         
         entry_price = float(ticker.get('lastPrice', 0))
         if entry_price == 0:
+            logger.error(f"Invalid price for {symbol}")
             return False
         
         stop_loss_price = None
         take_profit_price = None
         
         if self.config.get('enable_stop_loss', True):
-            price_move_percent = self.config.get('stop_loss_percent', 100) / leverage
+            price_move_percent = self.config.get('stop_loss_percent', 37) / leverage
             stop_loss_price = entry_price * (1 + price_move_percent / 100)
         
         if self.config.get('enable_take_profit', True):
@@ -260,6 +306,13 @@ class MobileTradingBot:
             take_profit_price = entry_price * (1 - price_move_percent / 100)
         
         logger.info(f"🔴 SHORT {symbol} - ${usd_amount:.2f} ({qty}) @ {leverage}x")
+        if stop_loss_price:
+            actual_price_move = ((stop_loss_price - entry_price) / entry_price) * 100
+            logger.info(f"   ⛔ SL: ${stop_loss_price:.2f} ({actual_price_move:.2f}% price = {self.config.get('stop_loss_percent', 37)}% ROI)")
+        if take_profit_price:
+            actual_price_move = ((entry_price - take_profit_price) / entry_price) * 100
+            logger.info(f"   🎯 TP: ${take_profit_price:.2f} ({actual_price_move:.2f}% price = {self.config.get('take_profit_percent', 150)}% ROI)")
+        
         response = self.client.place_order(
             symbol=symbol,
             side='Sell',
