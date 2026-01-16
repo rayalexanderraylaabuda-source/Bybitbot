@@ -78,7 +78,7 @@ class LiteMobileBot:
                 "twin_range_fast_range": 1.6,
                 "twin_range_slow_period": 55,
                 "twin_range_slow_range": 2.0,
-                "stop_loss_percent": 100,
+                "stop_loss_percent": 37,
                 "enable_stop_loss": True,
                 "take_profit_percent": 150,
                 "enable_take_profit": True,
@@ -185,21 +185,31 @@ class LiteMobileBot:
         """Open long"""
         pos = self.get_position(symbol)
         
+        # Close any short position first
         if pos['side'] == 'Sell' and pos['size'] > 0:
+            logger.info(f"Closing SHORT position before opening LONG on {symbol}")
             if not self.close_pos(symbol):
+                logger.error(f"Failed to close short position on {symbol}")
                 return False
             time.sleep(1)
         
+        # Check if ANY other position is open
+        if self.has_any_position():
+            logger.info(f"❌ Already have an open position elsewhere, cannot open LONG on {symbol}")
+            return False
+        
         usd = self.calc_size(symbol)
-        lev = 35  # Fixed 35x leverage as per requirement
+        lev = self.config['leverage'].get(symbol, 35)
         
         # Set leverage
         if not self.client.set_leverage(symbol, lev):
+            logger.error(f"Failed to set leverage for {symbol}")
             return False
         
         qty = self.client.calculate_qty(symbol, usd, lev)
         
         if qty == 0:
+            logger.error(f"Could not calculate quantity for {symbol}")
             return False
         
         # Get current price for SL/TP calculation
@@ -218,13 +228,13 @@ class LiteMobileBot:
         stop_loss_price = None
         take_profit_price = None
         
-        if self.config.get('enable_stop_loss', False):
+        if self.config.get('enable_stop_loss', True):
             sl_percent = self.config.get('stop_loss_percent', self.DEFAULT_STOP_LOSS_PERCENT)
             # Price move needed = ROI% / leverage
             price_move_percent = sl_percent / lev
             stop_loss_price = entry_price * (1 - price_move_percent / 100)
         
-        if self.config.get('enable_take_profit', False):
+        if self.config.get('enable_take_profit', True):
             tp_percent = self.config.get('take_profit_percent', self.DEFAULT_TAKE_PROFIT_PERCENT)
             # Price move needed = ROI% / leverage
             price_move_percent = tp_percent / lev
@@ -233,10 +243,10 @@ class LiteMobileBot:
         logger.info(f"🟢 LONG {symbol} ${usd:.2f} @ ${entry_price:.2f} | {lev}x")
         if stop_loss_price:
             actual_price_move = ((entry_price - stop_loss_price) / entry_price) * 100
-            logger.info(f"   ⛔ SL: ${stop_loss_price:.2f} ({actual_price_move:.2f}% price = {self.config.get('stop_loss_percent', 42)}% ROI)")
+            logger.info(f"   ⛔ SL: ${stop_loss_price:.2f} ({actual_price_move:.2f}% price = {sl_percent}% ROI)")
         if take_profit_price:
             actual_price_move = ((take_profit_price - entry_price) / entry_price) * 100
-            logger.info(f"   🎯 TP: ${take_profit_price:.2f} ({actual_price_move:.2f}% price = {self.config.get('take_profit_percent', 150)}% ROI)")
+            logger.info(f"   🎯 TP: ${take_profit_price:.2f} ({actual_price_move:.2f}% price = {tp_percent}% ROI)")
         
         resp = self.client.place_order(symbol, 'Buy', qty, stop_loss=stop_loss_price, take_profit=take_profit_price)
         return resp.get('retCode') == 0
@@ -245,21 +255,31 @@ class LiteMobileBot:
         """Open short"""
         pos = self.get_position(symbol)
         
+        # Close any long position first
         if pos['side'] == 'Buy' and pos['size'] > 0:
+            logger.info(f"Closing LONG position before opening SHORT on {symbol}")
             if not self.close_pos(symbol):
+                logger.error(f"Failed to close long position on {symbol}")
                 return False
             time.sleep(1)
         
+        # Check if ANY other position is open
+        if self.has_any_position():
+            logger.info(f"❌ Already have an open position elsewhere, cannot open SHORT on {symbol}")
+            return False
+        
         usd = self.calc_size(symbol)
-        lev = 35  # Fixed 35x leverage as per requirement
+        lev = self.config['leverage'].get(symbol, 35)
         
         # Set leverage
         if not self.client.set_leverage(symbol, lev):
+            logger.error(f"Failed to set leverage for {symbol}")
             return False
         
         qty = self.client.calculate_qty(symbol, usd, lev)
         
         if qty == 0:
+            logger.error(f"Could not calculate quantity for {symbol}")
             return False
         
         # Get current price for SL/TP calculation
@@ -278,14 +298,14 @@ class LiteMobileBot:
         stop_loss_price = None
         take_profit_price = None
         
-        if self.config.get('enable_stop_loss', False):
+        if self.config.get('enable_stop_loss', True):
             sl_percent = self.config.get('stop_loss_percent', self.DEFAULT_STOP_LOSS_PERCENT)
             # For SHORT: stop loss is ABOVE entry price (price goes up = loss)
             # Price move needed = ROI% / leverage
             price_move_percent = sl_percent / lev
             stop_loss_price = entry_price * (1 + price_move_percent / 100)
         
-        if self.config.get('enable_take_profit', False):
+        if self.config.get('enable_take_profit', True):
             tp_percent = self.config.get('take_profit_percent', self.DEFAULT_TAKE_PROFIT_PERCENT)
             # For SHORT: take profit is BELOW entry price (price goes down = profit)
             # Price move needed = ROI% / leverage
@@ -295,17 +315,17 @@ class LiteMobileBot:
         logger.info(f"🔴 SHORT {symbol} ${usd:.2f} @ ${entry_price:.2f} | {lev}x")
         if stop_loss_price:
             actual_price_move = ((stop_loss_price - entry_price) / entry_price) * 100
-            logger.info(f"   ⛔ SL: ${stop_loss_price:.2f} ({actual_price_move:.2f}% price = {self.config.get('stop_loss_percent', 42)}% ROI)")
+            logger.info(f"   ⛔ SL: ${stop_loss_price:.2f} ({actual_price_move:.2f}% price = {sl_percent}% ROI)")
         if take_profit_price:
             actual_price_move = ((entry_price - take_profit_price) / entry_price) * 100
-            logger.info(f"   🎯 TP: ${take_profit_price:.2f} ({actual_price_move:.2f}% price = {self.config.get('take_profit_percent', 150)}% ROI)")
+            logger.info(f"   🎯 TP: ${take_profit_price:.2f} ({actual_price_move:.2f}% price = {tp_percent}% ROI)")
         
         resp = self.client.place_order(symbol, 'Sell', qty, stop_loss=stop_loss_price, take_profit=take_profit_price)
         return resp.get('retCode') == 0
     
     def check_stop_loss_take_profit(self):
         """Check stop loss and take profit based on ROI"""
-        if not self.config.get('enable_stop_loss', False) and not self.config.get('enable_take_profit', False):
+        if not self.config.get('enable_stop_loss', True) and not self.config.get('enable_take_profit', True):
             return
         
         for symbol in self.pairs:
@@ -329,18 +349,18 @@ class LiteMobileBot:
                     roi = ((pos['entry'] - price) / pos['entry']) * pos['leverage'] * 100
                 
                 # Check Stop Loss
-                if self.config.get('enable_stop_loss', False):
+                if self.config.get('enable_stop_loss', True):
                     stop_loss_percent = self.config.get('stop_loss_percent', self.DEFAULT_STOP_LOSS_PERCENT)
                     if roi <= -stop_loss_percent:
-                        logger.warning(f"🛑 SL {symbol} ROI: {roi:.1f}%")
+                        logger.warning(f"🛑 STOP LOSS {symbol} - ROI: {roi:.2f}%")
                         self.close_pos(symbol)
                         continue
                 
                 # Check Take Profit
-                if self.config.get('enable_take_profit', False):
+                if self.config.get('enable_take_profit', True):
                     take_profit_percent = self.config.get('take_profit_percent', self.DEFAULT_TAKE_PROFIT_PERCENT)
                     if roi >= take_profit_percent:
-                        logger.info(f"💰 TP {symbol} ROI: {roi:.1f}%")
+                        logger.info(f"💰 TAKE PROFIT {symbol} - ROI: {roi:.2f}%")
                         self.close_pos(symbol)
                         
             except Exception as e:
